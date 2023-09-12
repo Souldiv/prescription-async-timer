@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::{Mutex, Arc};
 
-use chrono::{Utc, NaiveTime};
+use chrono::{Local, NaiveTime};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub type Timer = Arc<Mutex<MedicineTimer>>;
@@ -26,11 +26,11 @@ pub struct MedicineTimer {
 impl MedicineTimer {
     pub fn new() -> Self {
         MedicineTimer {
-            cephalexin: (false, Utc::now().time()),
-            oxycodone: (false, Utc::now().time()),
-            ibuprofen: (false, Utc::now().time()),
-            lorazepam: (false, Utc::now().time()),
-            allegra: (false, Utc::now().time()),
+            cephalexin: (false, Local::now().time()),
+            oxycodone: (false, Local::now().time()),
+            ibuprofen: (false, Local::now().time()),
+            lorazepam: (false, Local::now().time()),
+            allegra: (false, Local::now().time()),
         }
     }
 
@@ -39,27 +39,27 @@ impl MedicineTimer {
             Medicine::Cephalexin => {
                 let (status, last_toggled_time) = &mut self.cephalexin;
                 *status = !*status;
-                *last_toggled_time = Utc::now().time();
+                *last_toggled_time = Local::now().time();
             },
             Medicine::Oxycodone => {
                 let (status, last_toggled_time) = &mut self.oxycodone;
                 *status = !*status;
-                *last_toggled_time = Utc::now().time();
+                *last_toggled_time = Local::now().time();
             },
             Medicine::Ibuprofen => {
                 let (status, last_toggled_time) = &mut self.ibuprofen;
                 *status = !*status;
-                *last_toggled_time = Utc::now().time();
+                *last_toggled_time = Local::now().time();
             },
             Medicine::Lorazepam => {
                 let (status, last_toggled_time) = &mut self.lorazepam;
                 *status = !*status;
-                *last_toggled_time = Utc::now().time();
+                *last_toggled_time = Local::now().time();
             },
             Medicine::Allegra => {
                 let (status, last_toggled_time) = &mut self.allegra;
                 *status = !*status;
-                *last_toggled_time = Utc::now().time();
+                *last_toggled_time = Local::now().time();
             },
         }
     }
@@ -74,45 +74,55 @@ impl MedicineTimer {
         };
     }
 
-    pub fn calculate_elapsed_time(&self) -> String {
-        let mut elapsed_times = Vec::new();
-
-        if self.cephalexin.0 {
-            elapsed_times.push(("Cephalexin", self.calculate_elapsed_medicine(&self.cephalexin)));
-        }
-        if self.oxycodone.0 {
-            elapsed_times.push(("Oxycodone", self.calculate_elapsed_medicine(&self.oxycodone)));
-        }
-        if self.ibuprofen.0 {
-            elapsed_times.push(("Ibuprofen", self.calculate_elapsed_medicine(&self.ibuprofen)));
-        }
-        if self.lorazepam.0 {
-            elapsed_times.push(("Lorazepam", self.calculate_elapsed_medicine(&self.lorazepam)));
-        }
-        if self.allegra.0 {
-            elapsed_times.push(("Allegra", self.calculate_elapsed_medicine(&self.allegra)));
-        }
-
-        let formatted_times: Vec<String> = elapsed_times
-            .iter()
-            .map(|(name, time)| format!("{}: {}", name, time))
-            .collect();
-
-        formatted_times.join(", ")
+    pub fn get_field(&self, medicine: Medicine) -> (bool, NaiveTime) {
+        return match medicine {
+            Medicine::Cephalexin => self.cephalexin,
+            Medicine::Oxycodone => self.oxycodone,
+            Medicine::Ibuprofen => self.ibuprofen,
+            Medicine::Lorazepam => self.lorazepam,
+            Medicine::Allegra => self.allegra
+        };
     }
 
-    fn calculate_elapsed_medicine(&self, medicine: &(bool, NaiveTime)) -> String {
-        if medicine.0 {
-            // Assuming the time difference is calculated in seconds
-            let duration = (chrono::Utc::now().time() - medicine.1).num_seconds();
-            let hours = duration / 3600;
-            let minutes = (duration % 3600) / 60;
-            let seconds = duration % 60;
-            format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
-        } else {
-            "N/A".to_string()
-        }
-    }
+    // pub fn calculate_elapsed_time(&self) -> String {
+    //     let mut elapsed_times = Vec::new();
+
+    //     if self.cephalexin.0 {
+    //         elapsed_times.push(("Cephalexin", self.calculate_elapsed_medicine(&self.cephalexin)));
+    //     }
+    //     if self.oxycodone.0 {
+    //         elapsed_times.push(("Oxycodone", self.calculate_elapsed_medicine(&self.oxycodone)));
+    //     }
+    //     if self.ibuprofen.0 {
+    //         elapsed_times.push(("Ibuprofen", self.calculate_elapsed_medicine(&self.ibuprofen)));
+    //     }
+    //     if self.lorazepam.0 {
+    //         elapsed_times.push(("Lorazepam", self.calculate_elapsed_medicine(&self.lorazepam)));
+    //     }
+    //     if self.allegra.0 {
+    //         elapsed_times.push(("Allegra", self.calculate_elapsed_medicine(&self.allegra)));
+    //     }
+
+    //     let formatted_times: Vec<String> = elapsed_times
+    //         .iter()
+    //         .map(|(name, time)| format!("{}: {}", name, time))
+    //         .collect();
+
+    //     formatted_times.join(", ")
+    // }
+
+    // fn calculate_elapsed_medicine(&self, medicine: &(bool, NaiveTime)) -> String {
+    //     if medicine.0 {
+    //         // Assuming the time difference is calculated in seconds
+    //         let duration = (Local::now().time() - medicine.1).num_seconds();
+    //         let hours = duration / 3600;
+    //         let minutes = (duration % 3600) / 60;
+    //         let seconds = duration % 60;
+    //         format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    //     } else {
+    //         "N/A".to_string()
+    //     }
+    // }
 }
 
 

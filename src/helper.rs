@@ -1,4 +1,4 @@
-use crate::collections::Action;
+use crate::collections::{Action, Config};
 use crate::medicine::{Medicine, Timer};
 
 use futures::stream::StreamExt;
@@ -14,24 +14,21 @@ use tokio::time::{sleep, Duration};
 extern crate colored;
 use colored::*;
 
-
-pub async fn async_sleep(med: Medicine, timer: Timer) {
+// duration timer function that starts the timer
+pub async fn async_sleep(med: Medicine, timer: Timer, duration: u64) {
+    // toggle timer for selected medicine to true
     timer.lock().unwrap().toggle(&med);
-        
-    let duration = match med {
-        Medicine::Cephalexin => Duration::from_secs(30),
-        Medicine::Oxycodone => Duration::from_secs(30),
-        Medicine::Ibuprofen => Duration::from_secs(10800),
-        Medicine::Lorazepam => Duration::from_secs(30),
-        Medicine::Allegra => Duration::from_secs(30),
-    };
 
+    // create duration struct
+    let duration = Duration::from_secs(duration);
     sleep(duration).await;
 
+    // toggle timer for selected medicine to false
     timer.lock().unwrap().toggle(&med);
-    println!("{} Can be taken again! Timer Done!", med);
+    println!("{}", format!("{} Can be taken again! Timer Done!", med).green());
 }
 
+// connect to mongodb
 pub async fn connect() -> Result<Database, mongodb::error::Error> {
     let uri = "mongodb://localhost:27017/";
     let client_options = ClientOptions::parse(uri).await?;
@@ -40,6 +37,7 @@ pub async fn connect() -> Result<Database, mongodb::error::Error> {
     Ok(db)
 }
 
+// get all actions from mongodb
 pub async fn get_all_actions(
     actions: &Collection<Action>,
 ) -> Result<Vec<Action>, mongodb::error::Error> {
@@ -76,14 +74,14 @@ pub async fn get_all_actions(
     Ok(result)
 }
 
-pub fn get_user_choice(timer: Timer) -> Result<Medicine, std::io::Error> {
-    println!("{}", "\nList of Medicines:".green());
-    println!("{}", "1. Cephalexin".green());
-    println!("{}", "2. Ibuprofen".green());
-    println!("{}", "3. Oxycodone".green());
-    println!("{}", "4. Lorazepam".green());
-    println!("{}", "5. Allegra".green());
-    println!("{}", "6. Remaining Time".green());
+// get user choice
+pub fn get_user_choice() -> Result<Medicine, std::io::Error> {
+    println!("{}", "\nList of Medicines:".yellow());
+    println!("{}", "1. Cephalexin".yellow());
+    println!("{}", "2. Ibuprofen".yellow());
+    println!("{}", "3. Oxycodone".yellow());
+    println!("{}", "4. Lorazepam".yellow());
+    println!("{}", "5. Allegra".yellow());
 
     let mut user_input = String::new();
     println!("{}", "Choose Medicine that is taken: ".red());
@@ -99,8 +97,7 @@ pub fn get_user_choice(timer: Timer) -> Result<Medicine, std::io::Error> {
         4 => Medicine::Lorazepam,
         5 => Medicine::Allegra,
         _ => {
-            println!("\n{}", timer.lock().unwrap().calculate_elapsed_time().cyan());
-            return get_user_choice(timer); // You can return a default medicine or handle this case as needed.
+            return get_user_choice(); // You can return a default medicine or handle this case as needed.
         }
     };
 
