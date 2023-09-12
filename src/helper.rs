@@ -3,11 +3,11 @@ use crate::medicine::{Medicine, Timer};
 
 use futures::stream::StreamExt;
 
+use chrono::Local;
 use chrono::Timelike;
-use chrono::{Local};
 
-use mongodb::{options::ClientOptions, options::FindOptions, Client, Collection, Database};
 use mongodb::bson::doc;
+use mongodb::{options::ClientOptions, options::FindOptions, Client, Collection, Database};
 
 use tokio::time::{sleep, Duration};
 
@@ -25,7 +25,10 @@ pub async fn async_sleep(med: Medicine, timer: Timer, duration: u64) {
 
     // toggle timer for selected medicine to false
     timer.lock().unwrap().toggle(&med);
-    println!("{}", format!("{} Can be taken again! Timer Done!", med).green());
+    println!(
+        "{}",
+        format!("{} Can be taken again! Timer Done!", med).green()
+    );
 }
 
 // connect to mongodb
@@ -68,7 +71,7 @@ pub async fn get_all_actions(
     while let Some(doc) = cursor.next().await {
         match doc {
             Ok(act) => result.push(act),
-            Err(e) => println!("Encountered error in collecting actions {}", e)
+            Err(e) => println!("Encountered error in collecting actions {}", e),
         }
     }
     Ok(result)

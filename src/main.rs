@@ -2,12 +2,13 @@ mod collections;
 mod helper;
 mod medicine;
 
-use medicine::{MedicineTimer};
-use std::sync::{Arc, Mutex};
 use collections::{Action, Config};
-use helper::{connect, get_all_actions, get_user_choice, async_sleep};
 use colored::*;
+use helper::{async_sleep, connect, get_all_actions, get_user_choice};
+use medicine::MedicineTimer;
+use std::sync::{Arc, Mutex};
 
+use tokio::task::spawn_blocking;
 
 #[tokio::main]
 async fn main() -> Result<(), mongodb::error::Error> {
@@ -24,24 +25,26 @@ async fn main() -> Result<(), mongodb::error::Error> {
     // create new timers where the program had left off
     for (medicine, duration) in remaining_timer {
         if duration > 0 {
-            // scoped lock to ensure it drops it
             let t = timer.clone();
             tokio::spawn(async move {
                 async_sleep(medicine, t, duration).await;
-                });
-            }
+            });
         }
+    }
 
     loop {
         // get user input
-        {
-            let t = timer.clone();
-            println!("Remaining Time: {}", current_config.calculate_all_remaining(t).cyan());
-        }
+        let t = timer.clone();
+        let c = current_config.clone();
+        let _ = spawn_blocking(move || {
+            println!("Remaining Time: {}", c.calculate_all_remaining(t).cyan());
+        })
+        .await;
+
         let selected_medicine = get_user_choice()?;
         match current_config.check_and_insert(&selected_medicine) {
             true => {
-                 let check = { 
+                let check = {
                     let t = timer.lock().unwrap();
                     t.check(&selected_medicine)
                 };
@@ -61,13 +64,10 @@ async fn main() -> Result<(), mongodb::error::Error> {
                 } else {
                     println!("Timer in progress...");
                 }
-                
-                
-            },
+            }
             false => {
                 println!("Exceeding dosage for the day...");
             }
         }
-        
-    };
+    }
 }

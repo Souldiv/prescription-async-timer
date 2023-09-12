@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 use std::fmt;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use chrono::{Local, NaiveTime};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -16,115 +17,51 @@ pub enum Medicine {
 }
 
 pub struct MedicineTimer {
-    cephalexin: (bool, NaiveTime),
-    oxycodone: (bool, NaiveTime),
-    ibuprofen: (bool, NaiveTime),
-    lorazepam: (bool, NaiveTime),
-    allegra: (bool, NaiveTime),
+    medicines: HashMap<Medicine, (bool, NaiveTime)>,
 }
 
 impl MedicineTimer {
     pub fn new() -> Self {
-        MedicineTimer {
-            cephalexin: (false, Local::now().time()),
-            oxycodone: (false, Local::now().time()),
-            ibuprofen: (false, Local::now().time()),
-            lorazepam: (false, Local::now().time()),
-            allegra: (false, Local::now().time()),
+        let mut medicines = HashMap::new();
+        let current_time = Local::now().time();
+
+        for &medicine in &[
+            Medicine::Cephalexin,
+            Medicine::Oxycodone,
+            Medicine::Ibuprofen,
+            Medicine::Lorazepam,
+            Medicine::Allegra,
+        ] {
+            medicines.insert(medicine, (false, current_time));
         }
+
+        MedicineTimer { medicines }
     }
 
     pub fn toggle(&mut self, medicine: &Medicine) {
-        match medicine {
-            Medicine::Cephalexin => {
-                let (status, last_toggled_time) = &mut self.cephalexin;
-                *status = !*status;
-                *last_toggled_time = Local::now().time();
-            },
-            Medicine::Oxycodone => {
-                let (status, last_toggled_time) = &mut self.oxycodone;
-                *status = !*status;
-                *last_toggled_time = Local::now().time();
-            },
-            Medicine::Ibuprofen => {
-                let (status, last_toggled_time) = &mut self.ibuprofen;
-                *status = !*status;
-                *last_toggled_time = Local::now().time();
-            },
-            Medicine::Lorazepam => {
-                let (status, last_toggled_time) = &mut self.lorazepam;
-                *status = !*status;
-                *last_toggled_time = Local::now().time();
-            },
-            Medicine::Allegra => {
-                let (status, last_toggled_time) = &mut self.allegra;
-                *status = !*status;
-                *last_toggled_time = Local::now().time();
-            },
+        if let Some(med) = self.medicines.get_mut(medicine) {
+            let (status, last_toggled_time) = med;
+            *status = !*status;
+            *last_toggled_time = Local::now().time();
         }
     }
 
     pub fn check(&self, medicine: &Medicine) -> bool {
-        return match medicine {
-            Medicine::Cephalexin => self.cephalexin.0,
-            Medicine::Oxycodone => self.oxycodone.0,
-            Medicine::Ibuprofen => self.ibuprofen.0,
-            Medicine::Lorazepam => self.lorazepam.0,
-            Medicine::Allegra => self.allegra.0
-        };
+        if let Some(&(status, _)) = self.medicines.get(medicine) {
+            status
+        } else {
+            false
+        }
     }
 
-    pub fn get_field(&self, medicine: Medicine) -> (bool, NaiveTime) {
-        return match medicine {
-            Medicine::Cephalexin => self.cephalexin,
-            Medicine::Oxycodone => self.oxycodone,
-            Medicine::Ibuprofen => self.ibuprofen,
-            Medicine::Lorazepam => self.lorazepam,
-            Medicine::Allegra => self.allegra
-        };
+    pub fn get_field(&self, medicine: &Medicine) -> (bool, NaiveTime) {
+        if let Some(&field) = self.medicines.get(&medicine) {
+            field
+        } else {
+            (false, Local::now().time())
+        }
     }
-
-    // pub fn calculate_elapsed_time(&self) -> String {
-    //     let mut elapsed_times = Vec::new();
-
-    //     if self.cephalexin.0 {
-    //         elapsed_times.push(("Cephalexin", self.calculate_elapsed_medicine(&self.cephalexin)));
-    //     }
-    //     if self.oxycodone.0 {
-    //         elapsed_times.push(("Oxycodone", self.calculate_elapsed_medicine(&self.oxycodone)));
-    //     }
-    //     if self.ibuprofen.0 {
-    //         elapsed_times.push(("Ibuprofen", self.calculate_elapsed_medicine(&self.ibuprofen)));
-    //     }
-    //     if self.lorazepam.0 {
-    //         elapsed_times.push(("Lorazepam", self.calculate_elapsed_medicine(&self.lorazepam)));
-    //     }
-    //     if self.allegra.0 {
-    //         elapsed_times.push(("Allegra", self.calculate_elapsed_medicine(&self.allegra)));
-    //     }
-
-    //     let formatted_times: Vec<String> = elapsed_times
-    //         .iter()
-    //         .map(|(name, time)| format!("{}: {}", name, time))
-    //         .collect();
-
-    //     formatted_times.join(", ")
-    // }
-
-    // fn calculate_elapsed_medicine(&self, medicine: &(bool, NaiveTime)) -> String {
-    //     if medicine.0 {
-    //         // Assuming the time difference is calculated in seconds
-    //         let duration = (Local::now().time() - medicine.1).num_seconds();
-    //         let hours = duration / 3600;
-    //         let minutes = (duration % 3600) / 60;
-    //         let seconds = duration % 60;
-    //         format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
-    //     } else {
-    //         "N/A".to_string()
-    //     }
-    // }
 }
-
 
 impl fmt::Display for Medicine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
