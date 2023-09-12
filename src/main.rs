@@ -27,18 +27,19 @@ async fn main() -> Result<(), mongodb::error::Error> {
         match current_config.check_and_insert(&selected_medicine) {
             true => {
                  let check = { 
-                    let mut t = timer.lock().unwrap();
+                    let t = timer.lock().unwrap();
                     t.check(&selected_medicine)
                 };
 
                 if !check {
                     let act = Action::new(selected_medicine);
                     let _ = actions.insert_one(&act, None).await;
+                    let t = timer.clone();
                     println!("Valid, dose... proceed");
 
                     println!("Starting Timer...");
                     tokio::spawn(async move {
-                        async_sleep(selected_medicine, timer.clone()).await;
+                        async_sleep(selected_medicine, t).await;
                     });
                 } else {
                     println!("Timer in progress...");
@@ -48,9 +49,5 @@ async fn main() -> Result<(), mongodb::error::Error> {
                 println!("Exceeding dosage for the day...");
             }
         }
-
-        // let sleep_handle = async_sleep(selected_medicine);
-        // sleep_handle.await;
-        // Continue to the next iteration to take user input for the next medicine.
     };
 }
