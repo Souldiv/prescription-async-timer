@@ -2,8 +2,11 @@ mod collections;
 mod helper;
 mod medicine;
 
+use medicine::{MedicineTimer};
+use std::sync::{Arc, Mutex};
 use collections::{Action, Config};
-use helper::{connect, get_all_actions, get_user_choice};
+use helper::{connect, get_all_actions, get_user_choice, async_sleep};
+
 
 
 #[tokio::main]
@@ -14,23 +17,40 @@ async fn main() -> Result<(), mongodb::error::Error> {
     let vec_actions: Vec<Action> = get_all_actions(&actions).await?;
     let mut current_config: Config = Config::from_actions(vec_actions);
 
+    // Timer initialize
+    let timer = Arc::new(Mutex::new(MedicineTimer::new()));
+
     loop {
         // get user input
-        let selected_medicine = get_user_choice()?;
+        let selected_medicine = get_user_choice(timer.clone())?;
         
         match current_config.check_and_insert(&selected_medicine) {
             true => {
-                let act = Action::new(selected_medicine);
-                let _ = actions.insert_one(&act, None).await;
-                println!("Valid, dose... proceed");
+                 let check = { 
+                    let mut t = timer.lock().unwrap();
+                    t.check(&selected_medicine)
+                };
+
+                if !check {
+                    let act = Action::new(selected_medicine);
+                    let _ = actions.insert_one(&act, None).await;
+                    println!("Valid, dose... proceed");
+
+                    println!("Starting Timer...");
+                    tokio::spawn(async move {
+                        async_sleep(selected_medicine, timer.clone()).await;
+                    });
+                } else {
+                    println!("Timer in progress...");
+                }
             },
             false => {
-                println!("Exceeding dosage for the day...")
+                println!("Exceeding dosage for the day...");
             }
         }
 
         // let sleep_handle = async_sleep(selected_medicine);
         // sleep_handle.await;
         // Continue to the next iteration to take user input for the next medicine.
-    }
+    };
 }
