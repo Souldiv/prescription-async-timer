@@ -2,11 +2,18 @@ use crate::collections::Action;
 use crate::medicine::{Medicine, Timer};
 
 use futures::stream::StreamExt;
+
 use chrono::Timelike;
 use chrono::{Local};
+
 use mongodb::{options::ClientOptions, options::FindOptions, Client, Collection, Database};
 use mongodb::bson::doc;
+
 use tokio::time::{sleep, Duration};
+
+extern crate colored;
+use colored::*;
+
 
 pub async fn async_sleep(med: Medicine, timer: Timer) {
     timer.lock().unwrap().toggle(&med);
@@ -14,7 +21,7 @@ pub async fn async_sleep(med: Medicine, timer: Timer) {
     let duration = match med {
         Medicine::Cephalexin => Duration::from_secs(30),
         Medicine::Oxycodone => Duration::from_secs(30),
-        Medicine::Ibuprofen => Duration::from_secs(30),
+        Medicine::Ibuprofen => Duration::from_secs(10800),
         Medicine::Lorazepam => Duration::from_secs(30),
         Medicine::Allegra => Duration::from_secs(30),
     };
@@ -70,16 +77,16 @@ pub async fn get_all_actions(
 }
 
 pub fn get_user_choice(timer: Timer) -> Result<Medicine, std::io::Error> {
-    println!("\nList of Medicines:");
-    println!("1. Cephalexin");
-    println!("2. Ibuprofen");
-    println!("3. Oxycodone");
-    println!("4. Lorazepam");
-    println!("5. Allegra");
-    println!("6. Remaining Time");
+    println!("{}", "\nList of Medicines:".green());
+    println!("{}", "1. Cephalexin".green());
+    println!("{}", "2. Ibuprofen".green());
+    println!("{}", "3. Oxycodone".green());
+    println!("{}", "4. Lorazepam".green());
+    println!("{}", "5. Allegra".green());
+    println!("{}", "6. Remaining Time".green());
 
     let mut user_input = String::new();
-    println!("Choose Medicine that is taken: ");
+    println!("{}", "Choose Medicine that is taken: ".red());
 
     let _ = std::io::stdin().read_line(&mut user_input);
 
@@ -87,12 +94,12 @@ pub fn get_user_choice(timer: Timer) -> Result<Medicine, std::io::Error> {
 
     let selected_medicine = match choice {
         1 => Medicine::Cephalexin,
-        2 => Medicine::Oxycodone,
-        3 => Medicine::Ibuprofen,
+        2 => Medicine::Ibuprofen,
+        3 => Medicine::Oxycodone,
         4 => Medicine::Lorazepam,
         5 => Medicine::Allegra,
         _ => {
-            println!("\n {}", timer.lock().unwrap().calculate_elapsed_time());
+            println!("\n{}", timer.lock().unwrap().calculate_elapsed_time().cyan());
             return get_user_choice(timer); // You can return a default medicine or handle this case as needed.
         }
     };
