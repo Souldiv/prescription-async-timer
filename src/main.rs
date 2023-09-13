@@ -19,8 +19,7 @@ async fn main() -> Result<(), mongodb::error::Error> {
     let mut current_config: Config = Config::from_actions(&vec_actions);
     let remaining_timer = current_config.create_timer_durations(&vec_actions);
     let md = current_config.create_timer_from_actions(&vec_actions);
-
-    println!("{:?}", md);
+    
     // Timer initialize
     let timer = Arc::new(Mutex::new(md));
 
