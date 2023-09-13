@@ -16,9 +16,11 @@ pub enum Medicine {
     Allegra,
 }
 
+#[derive(Debug)]
 pub struct MedicineTimer {
     medicines: HashMap<Medicine, (bool, NaiveTime)>,
 }
+
 
 impl MedicineTimer {
     pub fn new() -> Self {
@@ -41,8 +43,10 @@ impl MedicineTimer {
     pub fn toggle(&mut self, medicine: &Medicine) {
         if let Some(med) = self.medicines.get_mut(medicine) {
             let (status, last_toggled_time) = med;
+            if !*status {
+                *last_toggled_time = Local::now().time();
+            }
             *status = !*status;
-            *last_toggled_time = Local::now().time();
         }
     }
 
@@ -61,6 +65,21 @@ impl MedicineTimer {
             (false, Local::now().time())
         }
     }
+
+    pub fn set_time(&mut self, medicine: &Medicine, new_time: NaiveTime) {
+        if let Some(med) = self.medicines.get_mut(medicine) {
+            let (_, last_toggled_time) = med;
+            *last_toggled_time = new_time;
+        }
+    }
+    pub fn set_toggle(&mut self, medicine: &Medicine, flag: bool) {
+        if let Some(med) = self.medicines.get_mut(medicine) {
+            let (toggle, _) = med;
+            *toggle = flag;
+        }
+    }
+
+
 }
 
 impl fmt::Display for Medicine {

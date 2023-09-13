@@ -1,4 +1,4 @@
-use crate::collections::{Action, Config};
+use crate::collections::Action;
 use crate::medicine::{Medicine, Timer};
 
 use futures::stream::StreamExt;
@@ -17,7 +17,9 @@ use colored::*;
 // duration timer function that starts the timer
 pub async fn async_sleep(med: Medicine, timer: Timer, duration: u64) {
     // toggle timer for selected medicine to true
-    timer.lock().unwrap().toggle(&med);
+    if !timer.lock().unwrap().get_field(&med).0 {
+        timer.lock().unwrap().toggle(&med);
+    }
 
     // create duration struct
     let duration = Duration::from_secs(duration);

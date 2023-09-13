@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Local, NaiveTime};
 
-use crate::medicine::{Medicine, Timer};
+use crate::medicine::{Medicine, Timer, MedicineTimer};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone)]
@@ -80,7 +80,7 @@ impl Config {
             Medicine::Oxycodone,
             MedicineConfig {
                 max_limit: usize::MAX,
-                default_duration: 120,
+                default_duration: 500,
             },
         );
         medicines.insert(
@@ -129,48 +129,6 @@ impl Config {
         config
     }
 
-    fn increment_count(&mut self, medicine: &Medicine) {
-        if let Some(val) = self.conf.get_mut(medicine) {
-            let max_limit = self.medicines[medicine].max_limit;
-
-            if *val + 1 <= max_limit {
-                *val += 1;
-            }
-        }
-    }
-
-    fn calculate_remaining_time(&self, medicine: &Medicine, taken_at: &NaiveTime) -> u64 {
-        let seconds = self.medicines[medicine].default_duration;
-
-        // calculate duration and create NaiveTime Object
-        let duration = chrono::Duration::seconds(seconds as i64);
-
-        println!("taken at {:?} duration {:?}", taken_at, duration);
-        // projected end time of the timer
-        let end_time = *taken_at + duration;
-
-        println!("end_time {:?}", end_time);
-
-        let mut remaining_time = 0;
-        // calculate remaining time of the timer
-        if end_time > Local::now().time() {
-            remaining_time = end_time
-                .signed_duration_since(Local::now().time())
-                .num_seconds();
-        }
-
-        println!("remaining time {:?}", remaining_time);
-
-        return remaining_time as u64;
-    }
-
-    fn format_seconds(&self, remaining_time: u64) -> String {
-        let hours = remaining_time / 3600;
-        let minutes = (remaining_time % 3600) / 60;
-        let seconds = remaining_time % 60;
-        format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
-    }
-
     pub fn calculate_all_remaining(&self, timer: Timer) -> String {
         let mut elapsed_times = Vec::new();
 
@@ -201,6 +159,31 @@ impl Config {
             .collect();
 
         formatted_times.join(", ")
+    }
+
+    fn calculate_remaining_time(&self, medicine: &Medicine, taken_at: &NaiveTime) -> u64 {
+        let seconds = self.medicines[medicine].default_duration;
+
+        // calculate duration and create NaiveTime Object
+        let duration = chrono::Duration::seconds(seconds as i64);
+
+        // println!("taken at {:?} duration {:?}", taken_at, duration);
+        // projected end time of the timer
+        let end_time = *taken_at + duration;
+
+        // println!("end_time {:?}", end_time);
+
+        let mut remaining_time = 0;
+        // calculate remaining time of the timer
+        if end_time > Local::now().time() {
+            remaining_time = end_time
+                .signed_duration_since(Local::now().time())
+                .num_seconds();
+        }
+
+        // println!("remaining time {:?}", remaining_time);
+
+        return remaining_time as u64;
     }
 
     pub fn check_and_insert(&mut self, med: &Medicine) -> bool {
@@ -236,11 +219,49 @@ impl Config {
         return result;
     }
 
+    pub fn create_timer_from_actions(&self, list_of_actions: &Vec<Action>) -> MedicineTimer {
+        let mut last_action: HashMap<Medicine, NaiveTime> = HashMap::new();
+        let result: HashMap<Medicine, u64> = HashMap::new();
+        // get the last medicine taken and it's time
+        for action in list_of_actions {
+            last_action.insert(action.medicine, action.taken_at.0.time());
+        }
+
+        let mut md = MedicineTimer::new();
+        for (medicine, last_taken_at) in last_action {
+            if last_taken_at + chrono::Duration::seconds(self.get_default_duration(&medicine) as i64) > Local::now().time() {
+                md.set_time(&medicine, last_taken_at);
+                md.set_toggle(&medicine, true);
+            }
+        }
+
+        return md;
+    }
+
     pub fn get_default_duration(&self, med: &Medicine) -> u64 {
         match self.medicines.get(med) {
             Some(config) => config.default_duration,
             None => 0, // or any other default value you prefer for unconfigured medicines
         }
+    }
+
+    fn increment_count(&mut self, medicine: &Medicine) {
+        if let Some(val) = self.conf.get_mut(medicine) {
+            let max_limit = self.medicines[medicine].max_limit;
+
+            if *val + 1 <= max_limit {
+                *val += 1;
+            }
+        }
+    }
+
+
+
+    fn format_seconds(&self, remaining_time: u64) -> String {
+        let hours = remaining_time / 3600;
+        let minutes = (remaining_time % 3600) / 60;
+        let seconds = remaining_time % 60;
+        format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
     }
 
 }
